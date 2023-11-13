@@ -1,0 +1,64 @@
+/*
+	Example: A tip calculation FIS (fuzzy inference system)
+	Calculates tip based on 'umidade' and 'chuva'
+
+*/
+
+FUNCTION_BLOCK tipper	// Block definition (there may be more than one block per file)
+
+VAR_INPUT				// Define input variables
+	umidade : REAL;
+	chuva : REAL;
+END_VAR
+
+VAR_OUTPUT				// Define output variable
+	nivelDeIrrigacao : REAL;
+END_VAR
+
+FUZZIFY umidade		// Fuzzify input variable 'umidade': {'seco', 'moderado' , 'umido'}
+	TERM seco := (0, 1) (3, 1) (4,0) ; 
+	TERM moderado := (3, 0) (4,1) (6,1) (7,0);
+	TERM umido := (6, 0) (7, 1) (10,1);
+END_FUZZIFY
+
+FUZZIFY chuva			// Fuzzify input variable 'chuva': { 'baixaChuva', 'talvezChuva', 'altaChuva' }
+	TERM baixaChuva := (0, 1) (2, 1) (3,0) ;
+	TERM talvezChuva := (2, 0) (4, 1) (6, 1) (9,0);
+	TERM altaChuva := (8,0) (9,1) (10,1);
+END_FUZZIFY
+
+DEFUZZIFY nivelDeIrrigacao	// Defuzzify output variable 'nivelDeIrrigacao' : {'regarZero', 'regarPouco', 'regarModerado', 'regarMuito' }
+	TERM regarZero:= (0,1) (2,1) (3,0);
+	TERM regarPouco := (2,0) (3,1) (4,1) (5,0);
+	TERM regarModerado := (4,0) (5, 1) (6, 1) (7,0);
+	TERM regarMuito := (6,0) (7,1) (10,1);
+	
+	METHOD : COG;		// Use 'Center Of Gravity' defuzzification method
+	DEFAULT := 0;		// Default value is 0 (if no rule activates defuzzifier)
+END_DEFUZZIFY
+
+RULEBLOCK No1
+	AND : MIN;			// Use 'min' for 'and' 
+						// (also implicit use 'max' for 'or' to fulfill DeMorgan's Law)
+	ACT : MIN;			// Use 'min' activation method
+	ACCU : MAX;			// Use 'max' accumulation method
+
+	RULE 1 :IF umidade IS seco AND chuva IS baixaChuva THEN nivelDeIrrigacao IS regarMuito;
+	RULE 2 :IF umidade IS seco AND chuva IS talvezChuva THEN nivelDeIrrigacao IS regarPouco;
+	RULE 3: IF umidade IS seco AND chuva IS altaChuva THEN nivelDeIrrigacao IS regarZero;
+	
+	RULE 4 : IF umidade IS moderado AND chuva IS baixaChuva THEN nivelDeIrrigacao IS regarPouco;
+	RULE 5 : IF umidade IS moderado AND chuva IS talvezChuva THEN nivelDeIrrigacao IS regarPouco;
+	RULE 6 : IF umidade IS moderado AND chuva IS altaChuva THEN nivelDeIrrigacao IS regarZero;
+	
+	RULE 7 : IF umidade IS umido AND chuva IS baixaChuva THEN nivelDeIrrigacao IS regarZero;
+	RULE 8 : IF umidade IS umido AND chuva IS talvezChuva THEN nivelDeIrrigacao IS regarZero;
+	RULE 9 : IF umidade IS umido AND chuva IS altaChuva THEN nivelDeIrrigacao IS regarZero;
+	
+	
+
+	
+END_RULEBLOCK
+
+END_FUNCTION_BLOCK
+
